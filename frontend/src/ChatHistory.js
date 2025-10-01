@@ -18,7 +18,7 @@ const ChatHistory = ({ isVisible, onClose, onSelectMessage, onHistoryCleared }) 
   const loadHistory = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/history');
+      const response = await axios.get('/api/history');
       setHistory(response.data.history || []);
     } catch (err) {
       console.error('Error loading history:', err);
@@ -29,7 +29,7 @@ const ChatHistory = ({ isVisible, onClose, onSelectMessage, onHistoryCleared }) 
 
   const loadStats = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/stats');
+      const response = await axios.get('/api/stats');
       setStats(response.data);
     } catch (err) {
       console.error('Error loading stats:', err);
@@ -40,7 +40,7 @@ const ChatHistory = ({ isVisible, onClose, onSelectMessage, onHistoryCleared }) 
     if (window.confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
       try {
         setLoading(true);
-        const response = await axios.delete('http://localhost:5000/history');
+        const response = await axios.delete('/api/history');
         
         if (response.data.status === 'success') {
           setHistory([]);

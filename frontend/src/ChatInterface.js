@@ -21,17 +21,17 @@ const ChatInterface = () => {
   const checkBackendHealth = async () => {
     try {
       console.log('Checking backend health...');
-      const response = await axios.get('http://localhost:5000/health');
+      const response = await axios.get('/api/health');
       if (response.data.status === 'healthy') {
         console.log('Backend connected successfully:', response.data);
         
         // Test CORS as well
-        const corsTest = await axios.get('http://localhost:5000/test-cors');
+        const corsTest = await axios.get('/api/test-cors');
         console.log('CORS test successful:', corsTest.data);
       }
     } catch (err) {
       console.error('Backend connection failed:', err);
-      setError('Backend connection failed. Please ensure the server is running on port 5000.');
+      setError('Backend connection failed. Please ensure the server is running.');
     }
   };
 
@@ -45,7 +45,7 @@ const ChatInterface = () => {
 
   const loadHist = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/history');
+      const response = await axios.get('/api/history');
       setChatHist(response.data.history || []);
     } catch (err) {
       console.error('Error loading history:', err);
@@ -54,7 +54,7 @@ const ChatInterface = () => {
 
   const loadStats = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/stats');
+      const response = await axios.get('/api/stats');
       setStats(response.data);
     } catch (err) {
       console.error('Error loading stats:', err);
@@ -71,7 +71,7 @@ const ChatInterface = () => {
     try {
       console.log('Sending question to backend:', q.trim());
       
-      const response = await axios.post('http://localhost:5000/ask', {
+      const response = await axios.post('/api/ask', {
         question: q.trim()
       }, {
         headers: {

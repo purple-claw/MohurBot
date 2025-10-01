@@ -1,9 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import uvicorn
 import logging
+import os
+from pathlib import Path
 
 from knowledgeBase import find_best_match
 from chatHis import add_entry, load_history, clear_history, get_history_count
@@ -18,7 +22,7 @@ app = FastAPI(title="Mohur AI Chatbot API", version="2.0")
 # Adding the Universally Peice of Trash ---  CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"],  # Allow all origins for containerized deployment
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -37,7 +41,7 @@ class HistoryResponse(BaseModel):
     history: List[Dict[str, Any]]
     count: int
 
-@app.post("/ask", response_model=AnswerResponse)
+@app.post("/api/ask", response_model=AnswerResponse)
 async def handle_question(request: QuestionRequest):
     try:
         question = request.question.strip() 
@@ -94,7 +98,7 @@ async def handle_question(request: QuestionRequest):
         logger.error(f"Error processing question: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/history", response_model=HistoryResponse)
+@app.get("/api/history", response_model=HistoryResponse)
 async def get_history():
     try:
         history = load_history()
@@ -106,7 +110,7 @@ async def get_history():
         raise HTTPException(status_code=500, detail=str(e))
 
 # Endpoint and logic to delete the chat history, like your chrome Browsing History Hehehehe...
-@app.delete("/history")
+@app.delete("/api/history")
 async def clear_chat_history():
     try:
         success = clear_history()
@@ -124,18 +128,18 @@ async def clear_chat_history():
         raise HTTPException(status_code=500, detail=str(e))
 
 # End point to check the servers health,,,, Even servers sometimes get fever....
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "version": "2.0", "features": ["llm_integration", "enhanced_responses", "cors_enabled"]}
 
 # Testing our Universal Troublesome Peice of SHit,,, The CORS
-@app.get("/test-cors")
+@app.get("/api/test-cors")
 async def test_cors():
     return {"message": "CORS is working!", "timestamp": "2025-10-01", "status": "success"}
 
 
 # If the Knowledege Base Responses are ugly as you, then enhance it using GPT
-@app.post("/enhance")
+@app.post("/api/enhance")
 async def enhance_response(request: QuestionRequest):
     try:
         question = request.question.strip()
@@ -151,7 +155,7 @@ async def enhance_response(request: QuestionRequest):
 
 
 # Getting the stats, see how much you used it, like your brain
-@app.get("/stats")
+@app.get("/api/stats")
 async def get_stats():
     """
     Get chatbot statistics
@@ -174,8 +178,27 @@ async def get_stats():
         logger.error(f"Error getting stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Export the app for Vercel
+# Mount static files for frontend
+static_dir = Path(__file__).parent.parent / "frontend" / "build"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir / "static")), name="static")
+    
+    @app.get("/")
+    async def serve_frontend():
+        return FileResponse(str(static_dir / "index.html"))
+    
+    @app.get("/{full_path:path}")
+    async def serve_frontend_routes(full_path: str):
+        # Serve static files
+        file_path = static_dir / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        # For all other routes, serve index.html (SPA routing)
+        return FileResponse(str(static_dir / "index.html"))
+
+# Export the app for deployment
 handler = app
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    port = int(os.getenv("PORT", 5000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
